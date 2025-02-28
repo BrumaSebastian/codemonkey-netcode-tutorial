@@ -1,9 +1,13 @@
 using System;
+using Unity.Netcode;
 using UnityEngine;
 
-public class GameManager : MonoBehaviour
+public class GameManager : NetworkBehaviour
 {
     public static GameManager Instance { get; private set; }
+
+    private PlayerType localPlayerType;
+    private PlayerType currentPlayablePlayerType;
 
     public event EventHandler<OnClickedOnGridPositionEventArgs> OnClickedGridPosition;
 
@@ -11,6 +15,14 @@ public class GameManager : MonoBehaviour
     {
         public int x;
         public int y;
+        public PlayerType playerType;
+    }
+
+    public enum PlayerType
+    {
+        None,
+        Cross,
+        Circle
     }
 
     private void Awake()
@@ -24,14 +36,42 @@ public class GameManager : MonoBehaviour
 
     }
 
-    public void ClickedOnGridPosition(int x, int y)
+    public override void OnNetworkSpawn()
     {
-        Debug.Log($"Clicked on {x},{y}");
+        localPlayerType = NetworkManager.Singleton.LocalClientId == 0 ? PlayerType.Cross : PlayerType.Circle;
+
+        if (IsServer)
+        {
+            currentPlayablePlayerType = PlayerType.Cross;
+        }
+    }
+
+    [Rpc(SendTo.Server)]
+    public void ClickedOnGridPositionRpc(int x, int y, PlayerType playerType)
+    {
+        if (playerType != currentPlayablePlayerType)
+        {
+            return;
+        }
 
         OnClickedGridPosition?.Invoke(this, new OnClickedOnGridPositionEventArgs
         {
             x = x,
-            y = y
+            y = y,
+            playerType = playerType
         });
+
+        switch (currentPlayablePlayerType)
+        {
+            default:
+            case PlayerType.Cross:
+                currentPlayablePlayerType = PlayerType.Circle;
+                break;
+            case PlayerType.Circle:
+                currentPlayablePlayerType = PlayerType.Cross;
+                break;
+        }
     }
+
+    public PlayerType GetLocalPlayerType() => localPlayerType;
 }

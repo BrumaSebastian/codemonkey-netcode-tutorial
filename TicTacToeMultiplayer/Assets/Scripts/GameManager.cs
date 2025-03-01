@@ -10,6 +10,8 @@ public class GameManager : NetworkBehaviour
     private PlayerType currentPlayablePlayerType;
 
     public event EventHandler<OnClickedOnGridPositionEventArgs> OnClickedGridPosition;
+    public event EventHandler OnGameStarted;
+    public event EventHandler OnPlayablePlayerTypeChanged;
 
     public class OnClickedOnGridPositionEventArgs : EventArgs
     {
@@ -33,7 +35,6 @@ public class GameManager : NetworkBehaviour
         }
 
         Instance = this;
-
     }
 
     public override void OnNetworkSpawn()
@@ -42,8 +43,29 @@ public class GameManager : NetworkBehaviour
 
         if (IsServer)
         {
-            currentPlayablePlayerType = PlayerType.Cross;
+            NetworkManager.Singleton.OnClientConnectedCallback += NetworkManager_OnClientConnectedCallback;
         }
+    }
+
+    private void NetworkManager_OnClientConnectedCallback(ulong obj)
+    {
+        if (NetworkManager.ConnectedClientsList.Count == 2)
+        {
+            currentPlayablePlayerType = PlayerType.Cross;
+            TriggetOnGameStartedRpc();
+        }
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggetOnGameStartedRpc()
+    {
+        OnGameStarted?.Invoke(this, EventArgs.Empty);
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnCurrentPlayablePlayerTypeChangedRpc()
+    {
+        OnPlayablePlayerTypeChanged?.Invoke(this, EventArgs.Empty);
     }
 
     [Rpc(SendTo.Server)]
@@ -71,7 +93,10 @@ public class GameManager : NetworkBehaviour
                 currentPlayablePlayerType = PlayerType.Cross;
                 break;
         }
+
+        TriggerOnCurrentPlayablePlayerTypeChangedRpc();
     }
 
     public PlayerType GetLocalPlayerType() => localPlayerType;
+    public PlayerType GetCurrentPlayablePlayerType() => currentPlayablePlayerType;
 }

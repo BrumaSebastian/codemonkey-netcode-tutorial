@@ -1,9 +1,7 @@
-using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
-using static GameManager;
 
 public class GameManager : NetworkBehaviour
 {
@@ -19,6 +17,7 @@ public class GameManager : NetworkBehaviour
     public event EventHandler OnGameStarted;
     public event EventHandler OnPlayablePlayerTypeChanged;
     public event EventHandler<OnGameWinEventArgs> OnGameWin;
+    public event EventHandler OnRematch;
 
     public class OnClickedOnGridPositionEventArgs : EventArgs
     {
@@ -184,23 +183,6 @@ public class GameManager : NetworkBehaviour
         }
     }
 
-    [Rpc(SendTo.ClientsAndHost)]
-    private void TriggerOnGameStartedRpc()
-    {
-        OnGameStarted?.Invoke(this, EventArgs.Empty);
-    }
-
-    [Rpc(SendTo.ClientsAndHost)]
-    private void TriggerOnGameWinRpc(int lineIndex, PlayerType winPlayerType)
-    {
-        Line line = lineList[lineIndex];
-        OnGameWin?.Invoke(this, new OnGameWinEventArgs
-        {
-            line = line,
-            winPlayerType = winPlayerType
-        });
-    }
-
     [Rpc(SendTo.Server)]
     public void ClickedOnGridPositionRpc(int x, int y, PlayerType playerType)
     {
@@ -237,6 +219,24 @@ public class GameManager : NetworkBehaviour
         TestWinner();
     }
 
+    [Rpc(SendTo.Server)]
+    public void RematchRpc()
+    {
+        for (int x = 0; x < playerTypeArray.GetLength(0); x++)
+        {
+            for (int y = 0; y < playerTypeArray.GetLength(1); y++)
+            {
+                playerTypeArray[x, y] = PlayerType.None;
+            }
+        }
+
+        currentPlayablePlayerType.Value = PlayerType.Cross;
+        TriggerOnRematchRpc();
+    }
+
+    public PlayerType GetLocalPlayerType() => localPlayerType;
+    public PlayerType GetCurrentPlayablePlayerType() => currentPlayablePlayerType.Value;
+
     private void TestWinner()
     {
         for (int i = 0; i < lineList.Count; i++)
@@ -266,6 +266,27 @@ public class GameManager : NetworkBehaviour
         return a != PlayerType.None && a == b && b == c;
     }
 
-    public PlayerType GetLocalPlayerType() => localPlayerType;
-    public PlayerType GetCurrentPlayablePlayerType() => currentPlayablePlayerType.Value;
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnGameStartedRpc()
+    {
+        OnGameStarted?.Invoke(this, EventArgs.Empty);
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnGameWinRpc(int lineIndex, PlayerType winPlayerType)
+    {
+        Line line = lineList[lineIndex];
+        OnGameWin?.Invoke(this, new OnGameWinEventArgs
+        {
+            line = line,
+            winPlayerType = winPlayerType
+        });
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnRematchRpc()
+    {
+        OnRematch?.Invoke(this, EventArgs.Empty);
+    }
 }

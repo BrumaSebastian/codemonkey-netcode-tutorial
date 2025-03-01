@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using static GameManager;
 
 public class GameManager : NetworkBehaviour
 {
@@ -29,6 +30,7 @@ public class GameManager : NetworkBehaviour
     public class OnGameWinEventArgs : EventArgs
     {
         public Line line;
+        public PlayerType winPlayerType;
     }
 
     public enum PlayerType
@@ -178,14 +180,25 @@ public class GameManager : NetworkBehaviour
         if (NetworkManager.ConnectedClientsList.Count == 2)
         {
             currentPlayablePlayerType.Value = PlayerType.Cross;
-            TriggetOnGameStartedRpc();
+            TriggerOnGameStartedRpc();
         }
     }
 
     [Rpc(SendTo.ClientsAndHost)]
-    private void TriggetOnGameStartedRpc()
+    private void TriggerOnGameStartedRpc()
     {
         OnGameStarted?.Invoke(this, EventArgs.Empty);
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnGameWinRpc(int lineIndex, PlayerType winPlayerType)
+    {
+        Line line = lineList[lineIndex];
+        OnGameWin?.Invoke(this, new OnGameWinEventArgs
+        {
+            line = line,
+            winPlayerType = winPlayerType
+        });
     }
 
     [Rpc(SendTo.Server)]
@@ -226,14 +239,12 @@ public class GameManager : NetworkBehaviour
 
     private void TestWinner()
     {
-        foreach (var line in lineList)
+        for (int i = 0; i < lineList.Count; i++)
         {
+            Line line = lineList[i];
             if (TestWinnerLine(line))
             {
-                OnGameWin?.Invoke(this, new OnGameWinEventArgs
-                {
-                    line = line
-                });
+                TriggerOnGameWinRpc(i, playerTypeArray[line.centerGridPosition.x, line.centerGridPosition.y]);
                 currentPlayablePlayerType.Value = PlayerType.None;
 
                 break;

@@ -7,6 +7,8 @@ public class GameManager : NetworkBehaviour
     public static GameManager Instance { get; private set; }
 
     private PlayerType localPlayerType;
+    private PlayerType[,] playerTypeArray;
+
     private NetworkVariable<PlayerType> currentPlayablePlayerType = new();
 
     public event EventHandler<OnClickedOnGridPositionEventArgs> OnClickedGridPosition;
@@ -35,6 +37,7 @@ public class GameManager : NetworkBehaviour
         }
 
         Instance = this;
+        playerTypeArray = new PlayerType[3, 3];
     }
 
     public override void OnNetworkSpawn()
@@ -74,6 +77,13 @@ public class GameManager : NetworkBehaviour
         {
             return;
         }
+
+        if (playerTypeArray[x, y] != PlayerType.None)
+        {
+            return;
+        }
+        
+        playerTypeArray[x, y] = playerType;
 
         OnClickedGridPosition?.Invoke(this, new OnClickedOnGridPositionEventArgs
         {

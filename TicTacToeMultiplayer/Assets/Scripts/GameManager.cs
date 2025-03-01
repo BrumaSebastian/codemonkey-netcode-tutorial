@@ -12,6 +12,8 @@ public class GameManager : NetworkBehaviour
     private List<Line> lineList;
 
     private NetworkVariable<PlayerType> currentPlayablePlayerType = new();
+    private NetworkVariable<int> playerCrossScore = new();
+    private NetworkVariable<int> playerCircleScore = new();
 
     public event EventHandler<OnClickedOnGridPositionEventArgs> OnClickedGridPosition;
     public event EventHandler OnGameStarted;
@@ -19,6 +21,7 @@ public class GameManager : NetworkBehaviour
     public event EventHandler<OnGameWinEventArgs> OnGameWin;
     public event EventHandler OnRematch;
     public event EventHandler OnGameTied;
+    public event EventHandler OnScoreChanged;
 
     public class OnClickedOnGridPositionEventArgs : EventArgs
     {
@@ -173,6 +176,16 @@ public class GameManager : NetworkBehaviour
         {
             OnPlayablePlayerTypeChanged?.Invoke(this, EventArgs.Empty);
         };
+
+        playerCrossScore.OnValueChanged += (int previousScore, int newScore) =>
+        {
+            OnScoreChanged?.Invoke(this, EventArgs.Empty);
+        };
+
+        playerCircleScore.OnValueChanged += (int previousScore, int newScore) =>
+        {
+            OnScoreChanged?.Invoke(this, EventArgs.Empty);
+        };
     }
 
     private void NetworkManager_OnClientConnectedCallback(ulong obj)
@@ -238,6 +251,11 @@ public class GameManager : NetworkBehaviour
     public PlayerType GetLocalPlayerType() => localPlayerType;
     public PlayerType GetCurrentPlayablePlayerType() => currentPlayablePlayerType.Value;
 
+    public void GetScores(out int playerCrossScore, out int playerCircleScore) {
+        playerCrossScore = this.playerCrossScore.Value;
+        playerCircleScore = this.playerCircleScore.Value;
+    }
+
     private void TestWinner()
     {
         for (int i = 0; i < lineList.Count; i++)
@@ -245,9 +263,20 @@ public class GameManager : NetworkBehaviour
             Line line = lineList[i];
             if (TestWinnerLine(line))
             {
-                TriggerOnGameWinRpc(i, playerTypeArray[line.centerGridPosition.x, line.centerGridPosition.y]);
                 currentPlayablePlayerType.Value = PlayerType.None;
+                PlayerType winPlayerType = playerTypeArray[line.centerGridPosition.x, line.centerGridPosition.y];
 
+                switch (winPlayerType)
+                {
+                    case PlayerType.Cross:
+                        playerCrossScore.Value++;
+                        break;
+                    case PlayerType.Circle:
+                        playerCircleScore.Value++;
+                        break;
+                }
+
+                TriggerOnGameWinRpc(i, winPlayerType);
                 return;
             }
         }

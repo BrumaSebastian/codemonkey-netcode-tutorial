@@ -24,6 +24,11 @@ public class GameVisualManager : NetworkBehaviour
         GameManager.Instance.OnRematch += GameManager_OnRematch;
     }
 
+    private void Instance_OnGameTied(object sender, System.EventArgs e)
+    {
+        throw new System.NotImplementedException();
+    }
+
     private void GameManager_OnRematch(object sender, System.EventArgs e)
     {
         if (!NetworkManager.Singleton.IsServer)

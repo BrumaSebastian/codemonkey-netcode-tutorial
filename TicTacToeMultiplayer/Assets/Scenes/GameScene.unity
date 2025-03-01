@@ -2508,6 +2508,7 @@ MonoBehaviour:
   resultTestMesh: {fileID: 995746931}
   winColor: {r: 0.2792045, g: 0.754717, b: 0.08899963, a: 1}
   loseColor: {r: 0.8962264, g: 0.40590933, b: 0, a: 1}
+  tiedColor: {r: 0.5188679, g: 0.5188679, b: 0.5188679, a: 1}
   rematchButton: {fileID: 1218499403}
 --- !u!1 &1745626522
 GameObject:

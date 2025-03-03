@@ -1,10 +1,10 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Runtime.CompilerServices;
 using TMPro;
-using Unity.Services.Lobbies;
+using Unity.Services.Authentication;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class RoomManagerUI : MonoBehaviour
 {
@@ -13,44 +13,52 @@ public class RoomManagerUI : MonoBehaviour
     [SerializeField] private Transform playersContainer;
     [SerializeField] private TextMeshProUGUI lobbyName;
     [SerializeField] private GameObject playerLobbyPrefab;
+    [SerializeField] private Button leaveButton;
+    [SerializeField] private Button startGameButton;
 
-    private List<Player> players = new(); 
-    private List<GameObject> playersGameObject = new();
+    private readonly List<GameObject> playersGameObject = new();
+    private Lobby lobby;
+
+    private void Awake()
+    {
+        leaveButton.onClick.AddListener(async () =>
+        {
+            await LobbyManager.Instance.LeaveLobby(lobby.Id);
+            gameObject.SetActive(false);
+        });
+
+        startGameButton.onClick.AddListener( () =>
+        {
+            LobbyManager.Instance.StartGame(lobby);
+            gameObject.SetActive(false);
+        });
+    }
 
     private void Start()
     {
         gameObject.SetActive(false);
-        LobbyManager.Instance.OnLobbyCreated += LobbyManager_OnLobbyCreated;
-        LobbyManager.Instance.OnQuickJoin += LobbyManager_OnQuickJoin;
-        LobbyManager.Instance.OnPlayerJoined += LobbyManager_OnPlayerJoined;
+        LobbyManager.Instance.OnLobbyCreated += LobbyManager_OnLobbyJoined;
+        LobbyManager.Instance.OnQuickJoin += LobbyManager_OnLobbyJoined;
+        LobbyManager.Instance.OnLobbyPlayersChange += LobbyManager_OnLobbyPlayersChangeAsync;
     }
 
-    private void LobbyManager_OnPlayerJoined(object sender, Player player)
+    private async void LobbyManager_OnLobbyPlayersChangeAsync(object sender, System.EventArgs e)
     {
-        Debug.Log("New player joined " + player.Id);
-        players.Add(player);
-        RefreshPlayersInLobby();
+        lobby = await LobbyManager.Instance.GetLobbyData(lobby.Id);
+        Debug.Log($"on lobby changes: {lobby.HostId}");
+        ClearPlayersInLobby();
+        RefreshPlayers();
+        VerifyHost();
     }
 
-    private void LobbyManager_OnQuickJoin(object sender, Lobby lobby)
+    private void LobbyManager_OnLobbyJoined(object sender, Lobby lobby)
     {
+        Debug.Log($"On joined host:{lobby.HostId}");
+        this.lobby = lobby;
         lobbyName.text = lobby.Name;
-
-        Debug.Log("Players" + lobby.Players.Count);
-
-        foreach (Player player in lobby.Players)
-        {
-            SetupPlayer(player.Data[PLAYER_NAME].Value, isHost: lobby.HostId == player.Id);
-        }
-
-        gameObject.SetActive(true);
-    }
-
-    private void LobbyManager_OnLobbyCreated(object sender, Lobby lobby)
-    {
-        lobbyName.text = lobby.Name;
-        SetupPlayer(lobby.Players[0].Data[PLAYER_NAME].Value, true);
-
+        ClearPlayersInLobby();
+        RefreshPlayers();
+        VerifyHost();
         gameObject.SetActive(true);
     }
 
@@ -62,23 +70,34 @@ public class RoomManagerUI : MonoBehaviour
         playersGameObject.Add(playerLobby);
     }
 
-    private void RefreshPlayersInLobby()
+    private void RefreshPlayers()
     {
-        foreach (var player in players)
+        foreach (var player in lobby.Players)
         {
-            SetupPlayer(player.Data[PLAYER_NAME].Value);
+            bool isHost = lobby.HostId == player.Id;
+            SetupPlayer(player.Data[PLAYER_NAME].Value, isHost);
+        }
+    }
+
+    private void ClearPlayersInLobby()
+    {
+        foreach (var gameObject in playersGameObject)
+        {
+            Destroy(gameObject);
         }
 
         playersGameObject.Clear();
     }
 
-    private void ClearPlayersInLobby()
+    private void VerifyHost()
     {
-        foreach (var item in playersGameObject)
+        if (AuthenticationService.Instance.PlayerId == lobby.HostId)
         {
-            Destroy(item);
+            startGameButton.gameObject.SetActive(true);
         }
-
-        playersGameObject.Clear();
+        else
+        {
+            startGameButton.gameObject.SetActive(false);
+        }
     }
 }

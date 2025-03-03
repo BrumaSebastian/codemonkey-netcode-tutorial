@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
-using Unity.Netcode;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class LobbyManagerUI : MonoBehaviour
@@ -14,65 +15,69 @@ public class LobbyManagerUI : MonoBehaviour
     [SerializeField] private Transform searchLobbyContainer;
     [SerializeField] private GameObject lobbyPrefab;
 
-    private List<GameObject> lobbies = new();
+    private readonly List<GameObject> lobbies = new();
 
     private void Awake()
     {
         createButton.onClick.AddListener(async () =>
         {
             await LobbyManager.Instance.CreatePublicLobby($"Lobby of: {AuthenticationService.Instance.PlayerName}");
-            NetworkManager.Singleton.StartHost();
             gameObject.SetActive(false);
         });
 
         quickJoinButton.onClick.AddListener(async () =>
         {
-            Debug.Log("Quick join button pressed");
             await LobbyManager.Instance.QuickJoinLobby();
-            NetworkManager.Singleton.StartClient();
         });
 
         refreshButton.onClick.AddListener(async () =>
         {
-            Debug.Log("Refresh lobby button pressed");
             await LobbyManager.Instance.RefreshLobbyList();
+        });
+
+        joinButton.onClick.AddListener(() =>
+        {
+            //var go = EventSystem.current.currentSelectedGameObject;
+
+            //if (go != null && go.TryGetComponent<Selectable>(out var selectable) && selectable != null)
+            //{
+            //    if (go.TryGetComponent<LobbyTemplateUI>(out var lobbyTemplateUI))
+            //    {
+            //        Debug.Log("Joining Lobby: " + lobbyTemplateUI.LobbyId);
+            //        await LobbyManager.Instance.JoinLobby(lobbyTemplateUI.LobbyId);
+            //    }
+            //}
         });
     }
 
     private void Start()
     {
         gameObject.SetActive(false);
-        GameManager.Instance.OnGameStarted += GameManager_OnGameStarted;
-        LobbyManager.Instance.OnLobbyCreated += LobbyManager_OnLobbyCreated;
+        LobbyManager.Instance.OnAuthenticated += LobbyManager_OnAuthenticated;
         LobbyManager.Instance.OnLobbyRefresh += LobbyManager_OnLobbyRefresh;
-        LobbyManager.Instance.OnAuthentication += LobbyManager_OnAuthentication;
+        LobbyManager.Instance.OnPlayerLeftLobby += LobbyManager_OnLeaveLobby;
+        LobbyManager.Instance.OnQuickJoin += LobbyManager_OnQuickJoin;
     }
 
-    private void LobbyManager_OnAuthentication(object sender, string playerId)
+    private void LobbyManager_OnQuickJoin(object sender, Lobby e)
+    {
+        gameObject.SetActive(false);
+    }
+
+    private void LobbyManager_OnAuthenticated(object sender, EventArgs e)
+    {
+        gameObject.SetActive(true);
+    }
+
+    private void LobbyManager_OnLeaveLobby(object sender, EventArgs e)
     {
         gameObject.SetActive(true);
     }
 
     private void LobbyManager_OnLobbyRefresh(object sender, List<Lobby> lobbies)
     {
-        Debug.Log("Refresh lobbies" + lobbies.Count);
-
-        ClearLobbyList();
-
-        foreach (Lobby lobby in lobbies) 
-        {
-            SetupLobby(lobby);
-        }
-    }
-
-    private void LobbyManager_OnLobbyCreated(object sender, Lobby lobby)
-    {
-        SetupLobby(lobby);
-    }
-
-    private void GameManager_OnGameStarted(object sender, System.EventArgs e)
-    {
-        gameObject.SetActive(false);
+        ClearLobbies();
+        RefreshLobbies(lobbies);
     }
 
     private void SetupLobby(Lobby lobby)
@@ -83,11 +88,19 @@ public class LobbyManagerUI : MonoBehaviour
         lobbies.Add(lobbyGameObject);
     }
 
-    private void ClearLobbyList()
+    private void RefreshLobbies(List<Lobby> lobbies)
+    {
+        foreach (Lobby lobby in lobbies)
+        {
+            SetupLobby(lobby);
+        }
+    }
+
+    private void ClearLobbies()
     {
         foreach (GameObject lobby in lobbies)
         {
-            Object.Destroy(lobby);
+            Destroy(lobby);
         }
 
         lobbies.Clear();

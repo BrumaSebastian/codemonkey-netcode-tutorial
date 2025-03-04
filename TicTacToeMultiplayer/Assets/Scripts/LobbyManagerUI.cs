@@ -32,7 +32,7 @@ public class LobbyManagerUI : MonoBehaviour
 
         refreshButton.onClick.AddListener(async () =>
         {
-            await LobbyManager.Instance.RefreshLobbyList();
+            await LobbyManager.Instance.RefreshLobbies();
         });
 
         joinButton.onClick.AddListener(() =>
@@ -56,10 +56,10 @@ public class LobbyManagerUI : MonoBehaviour
         LobbyManager.Instance.OnAuthenticated += LobbyManager_OnAuthenticated;
         LobbyManager.Instance.OnLobbyRefresh += LobbyManager_OnLobbyRefresh;
         LobbyManager.Instance.OnPlayerLeftLobby += LobbyManager_OnLeaveLobby;
-        LobbyManager.Instance.OnQuickJoin += LobbyManager_OnQuickJoin;
+        LobbyManager.Instance.OnJoinLobby += LobbyManager_OnJoinLobby;
     }
 
-    private void LobbyManager_OnQuickJoin(object sender, Lobby e)
+    private void LobbyManager_OnJoinLobby(object sender, Lobby e)
     {
         gameObject.SetActive(false);
     }

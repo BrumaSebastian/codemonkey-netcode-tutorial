@@ -1,43 +1,40 @@
-using System.Threading.Tasks;
-using Unity.Netcode.Transports.UTP;
-using Unity.Netcode;
-using Unity.Services.Relay.Models;
-using Unity.Services.Relay;
-using UnityEngine;
 using System.Collections.Generic;
-using Unity.Services.Authentication;
-using Unity.Services.Lobbies.Models;
+using System.Threading.Tasks;
+using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using Unity.Services.Lobbies;
+using Unity.Services.Lobbies.Models;
+using Unity.Services.Relay;
+using Unity.Services.Relay.Models;
+using UnityEngine;
 
 public class StartGameManager : MonoBehaviour
 {
-
     private void Start()
     {
-        LobbyManager.Instance.OnGameStart += LobbyManager_OnGameStart;
+        LobbyManager.Instance.OnHostStartGame += LobbyManager_OnHostStartGame;
+        LobbyManager.Instance.OnGameStarted += LobbyManager_OnGameStarted;
     }
 
-    private async void LobbyManager_OnGameStart(object sender, Lobby lobby)
+    private async void LobbyManager_OnGameStarted(object sender, string relayJoinCode)
     {
-        if (AuthenticationService.Instance.PlayerId == lobby.HostId)
+        Debug.Log("client ");
+        await StartClientWithRelay(relayJoinCode);
+    }
+
+    private async void LobbyManager_OnHostStartGame(object sender, Lobby lobby)
+    {
+        string joinCode = await StartHostWithRelay();
+
+        Debug.Log("host relay code" + joinCode);
+
+        await LobbyService.Instance.UpdateLobbyAsync(lobby.Id, new UpdateLobbyOptions
         {
-            Debug.Log("host");
-
-            string joinCode = await StartHostWithRelay();
-
-            var updatedLobby = await LobbyService.Instance.UpdateLobbyAsync(lobby.Id, new UpdateLobbyOptions
-            {
-                Data = new Dictionary<string, DataObject> {
-                    { LobbyManager.KEY_RELAY_JOIN_CODE, new DataObject(DataObject.VisibilityOptions.Member, joinCode) }
-                }
-            });
-        }
-        else
-        {
-            Debug.Log("client");
-
-            await StartClientWithRelay(lobby.Data[LobbyManager.KEY_RELAY_JOIN_CODE].Value);
-        }
+            Data = new Dictionary<string, DataObject> {
+                { LobbyManager.IS_GAME_STARTED, new DataObject(DataObject.VisibilityOptions.Public, "1") },
+                { LobbyManager.KEY_RELAY_JOIN_CODE, new DataObject(DataObject.VisibilityOptions.Member, joinCode) }
+            }
+        });
     }
 
     private async Task<string> StartHostWithRelay(int maxConnections = 3)

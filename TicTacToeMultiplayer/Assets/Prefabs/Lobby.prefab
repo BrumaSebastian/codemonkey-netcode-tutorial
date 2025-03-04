@@ -148,8 +148,8 @@ GameObject:
   m_Component:
   - component: {fileID: 275567364710449642}
   - component: {fileID: 2600354605886634048}
-  - component: {fileID: 485495410536287276}
   - component: {fileID: 8907049701343001544}
+  - component: {fileID: 8469772920009195490}
   m_Layer: 5
   m_Name: Lobby
   m_TagString: Untagged
@@ -174,10 +174,10 @@ RectTransform:
   - {fileID: 4612559701260949505}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 100}
+  m_SizeDelta: {x: 1501.9448, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2600354605886634048
 MonoBehaviour:
@@ -199,7 +199,7 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
---- !u!114 &485495410536287276
+--- !u!114 &8907049701343001544
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -208,7 +208,22 @@ MonoBehaviour:
   m_GameObject: {fileID: 3210419359088375681}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7a98125502f715b4b83cfb77b434e436, type: 3}
+  m_Script: {fileID: 11500000, guid: 077c8a98381f78646bd5b098d21ad4db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lobbyName: {fileID: 4978769069693955014}
+  lobbySlots: {fileID: 7867506104613864042}
+  button: {fileID: 8469772920009195490}
+--- !u!114 &8469772920009195490
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3210419359088375681}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Navigation:
@@ -221,9 +236,9 @@ MonoBehaviour:
   m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.8962264, g: 0.35815096, b: 0.04650232, a: 1}
-    m_PressedColor: {r: 1, g: 1, b: 1, a: 1}
-    m_SelectedColor: {r: 0.8584906, g: 0.36191654, b: 0.10123708, a: 1}
+    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
+    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
     m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
@@ -240,20 +255,9 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 3906774775955067192}
---- !u!114 &8907049701343001544
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3210419359088375681}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 077c8a98381f78646bd5b098d21ad4db, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  lobbyName: {fileID: 4978769069693955014}
-  lobbySlots: {fileID: 7867506104613864042}
+  m_OnClick:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &5875329946578598237
 GameObject:
   m_ObjectHideFlags: 0

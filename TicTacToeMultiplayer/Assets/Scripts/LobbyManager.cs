@@ -11,6 +11,7 @@ public class LobbyManager : MonoBehaviour
 {
     public const string PLAYER_NAME = "PlayerName";
     public const string KEY_RELAY_JOIN_CODE = "RelayJoinCode";
+    public const string IS_GAME_STARTED = "IsGameStarted";
 
     const int MAX_PLAYERS_IN_LOBBY = 2;
 
@@ -18,11 +19,14 @@ public class LobbyManager : MonoBehaviour
 
     public event EventHandler OnAuthenticated;
     public event EventHandler<Lobby> OnLobbyCreated;
-    public event EventHandler<Lobby> OnQuickJoin;
+    public event EventHandler<Lobby> OnJoinLobby;
     public event EventHandler<List<Lobby>> OnLobbyRefresh;
-    public event EventHandler OnLobbyPlayersChange;
+    public event EventHandler<Lobby> OnLobbyPlayersChange;
     public event EventHandler OnPlayerLeftLobby;
-    public event EventHandler<Lobby> OnGameStart;
+    public event EventHandler<Lobby> OnHostStartGame;
+    public event EventHandler<string> OnGameStarted;
+
+    private Lobby joinedLobby;
 
     private void Awake()
     {
@@ -64,32 +68,24 @@ public class LobbyManager : MonoBehaviour
             Player = new Player(
                 id: AuthenticationService.Instance.PlayerId, 
                 data: playerData),
-            Data = new Dictionary<string, DataObject>()
+            Data = new Dictionary<string, DataObject>
+            {
+                {  IS_GAME_STARTED, new DataObject(DataObject.VisibilityOptions.Public, "0") },
+                {  KEY_RELAY_JOIN_CODE, new DataObject(DataObject.VisibilityOptions.Member, string.Empty) }
+            }
         };
 
-        Lobby lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, MAX_PLAYERS_IN_LOBBY, options);
+        joinedLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, MAX_PLAYERS_IN_LOBBY, options);
 
         LobbyEventCallbacks callbacks = new();
-        callbacks.PlayerJoined += LobbyCallbacks_PlayerJoined;
-        callbacks.PlayerLeft += LobbyCallbacks_PlayerLeft;
-        await LobbyService.Instance.SubscribeToLobbyEventsAsync(lobby.Id, callbacks);
+        callbacks.LobbyChanged += LobbyCallbacks_LobbyChanged;
+        await LobbyService.Instance.SubscribeToLobbyEventsAsync(joinedLobby.Id, callbacks);
 
-        StartCoroutine(HeartbeatLobby(lobby.Id, 15));
+        StartCoroutine(HeartbeatLobby(joinedLobby.Id, 15));
 
-        Debug.Log($"Lobby created {lobby.Created} - host - {lobby.Players[0].Data[PLAYER_NAME].Value}");
+        Debug.Log($"Lobby created id:{joinedLobby.Id} - {joinedLobby.Created} - host - {joinedLobby.Players[0].Data[PLAYER_NAME].Value}");
 
-        OnLobbyCreated?.Invoke(this, lobby);
-    }
-
-    private void LobbyCallbacks_PlayerLeft(List<int> obj)
-    {
-        Debug.Log($"Player left: {obj[0]}");
-        OnLobbyPlayersChange?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void LobbyCallbacks_PlayerJoined(List<LobbyPlayerJoined> obj)
-    {
-        OnLobbyPlayersChange?.Invoke(this, EventArgs.Empty);
+        OnLobbyCreated?.Invoke(this, joinedLobby);
     }
 
     public async Task QuickJoinLobby()
@@ -108,8 +104,13 @@ public class LobbyManager : MonoBehaviour
                     data: playerData)
             };
 
-            var lobby = await LobbyService.Instance.QuickJoinLobbyAsync(options);
-            OnQuickJoin?.Invoke(this, lobby);
+            joinedLobby = await LobbyService.Instance.QuickJoinLobbyAsync(options);
+
+            LobbyEventCallbacks callbacks = new();
+            callbacks.LobbyChanged += LobbyCallbacks_LobbyChanged;
+            await LobbyService.Instance.SubscribeToLobbyEventsAsync(joinedLobby.Id, callbacks);
+
+            OnJoinLobby?.Invoke(this, joinedLobby);
         }
         catch (LobbyServiceException e)
         {
@@ -121,7 +122,26 @@ public class LobbyManager : MonoBehaviour
     {
         try
         {
-            Lobby joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
+            var playerData = new Dictionary<string, PlayerDataObject>
+            {
+                { PLAYER_NAME, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, AuthenticationService.Instance.PlayerName) }
+            };
+
+            JoinLobbyByIdOptions options = new()
+            {
+                Player = new Player(
+                    id: AuthenticationService.Instance.PlayerId,
+                    data: playerData)
+            };
+
+            joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId, options);
+
+            LobbyEventCallbacks callbacks = new();
+            callbacks.LobbyChanged += LobbyCallbacks_LobbyChanged;
+            await LobbyService.Instance.SubscribeToLobbyEventsAsync(joinedLobby.Id, callbacks);
+
+            OnJoinLobby?.Invoke(this, joinedLobby);
+            Debug.Log($"{AuthenticationService.Instance.PlayerName} joined " + joinedLobby.Name);
         }
         catch (LobbyServiceException e)
         {
@@ -129,7 +149,7 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
-    public async Task RefreshLobbyList()
+    public async Task RefreshLobbies()
     {
         try
         {
@@ -161,13 +181,13 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
-    public async Task LeaveLobby(string lobbyId)
+    public async Task LeaveLobby()
     {
         try
         {
             string playerId = AuthenticationService.Instance.PlayerId;
-            await LobbyService.Instance.RemovePlayerAsync(lobbyId, playerId);
-            Debug.Log($"Player {AuthenticationService.Instance.PlayerName} left lobby {lobbyId}");
+            await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, playerId);
+            Debug.Log($"Player {AuthenticationService.Instance.PlayerName} left lobby {joinedLobby.Id}");
             OnPlayerLeftLobby?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception e)
@@ -192,8 +212,32 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
-    public void StartGame(Lobby lobby)
+    public void StartGame()
     {
-        OnGameStart?.Invoke(this, lobby);
+        OnHostStartGame?.Invoke(this, joinedLobby);
     }
+
+    private bool IsHost()
+    {
+        return AuthenticationService.Instance.PlayerId == joinedLobby.HostId;
+    }
+
+    #region Lobby Callbacks
+
+    private void LobbyCallbacks_LobbyChanged(ILobbyChanges changes)
+    {
+        changes.ApplyToLobby(joinedLobby);
+
+        if (changes.PlayerLeft.Changed || changes.PlayerJoined.Changed)
+        {
+            OnLobbyPlayersChange?.Invoke(this, joinedLobby);
+        }
+
+        if (!IsHost() && joinedLobby.Data[IS_GAME_STARTED].Value == "1")
+        {
+            Debug.Log("relay code " + joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value);
+            OnGameStarted?.Invoke(this, joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value);
+        }
+    }
+    #endregion
 }

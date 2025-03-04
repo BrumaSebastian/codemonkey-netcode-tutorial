@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using TMPro;
+using Unity.Services.Authentication;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
@@ -47,6 +48,7 @@ public class RoomManagerUI : MonoBehaviour
     {
         ClearPlayersInLobby();
         RefreshPlayers(lobby);
+        startGameButton.gameObject.SetActive(IsHost(lobby));
     }
 
     private void LobbyManager_OnLobbyJoined(object sender, Lobby lobby)
@@ -55,6 +57,7 @@ public class RoomManagerUI : MonoBehaviour
         lobbyName.text = lobby.Name;
         ClearPlayersInLobby();
         RefreshPlayers(lobby);
+        startGameButton.gameObject.SetActive(IsHost(lobby));
         gameObject.SetActive(true);
     }
 
@@ -83,5 +86,10 @@ public class RoomManagerUI : MonoBehaviour
         }
 
         playersGameObject.Clear();
+    }
+
+    private static bool IsHost(Lobby lobby)
+    {
+        return AuthenticationService.Instance.PlayerId == lobby.HostId;
     }
 }

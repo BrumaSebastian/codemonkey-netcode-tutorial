@@ -223,21 +223,28 @@ public class LobbyManager : MonoBehaviour
     }
 
     #region Lobby Callbacks
-
     private void LobbyCallbacks_LobbyChanged(ILobbyChanges changes)
     {
         changes.ApplyToLobby(joinedLobby);
 
         if (changes.PlayerLeft.Changed || changes.PlayerJoined.Changed)
         {
+            Debug.Log("Players in lobby are updated");
             OnLobbyPlayersChange?.Invoke(this, joinedLobby);
         }
 
-        if (!IsHost() && joinedLobby.Data[IS_GAME_STARTED].Value == "1")
+        if (!IsHost() && changes.Data.Changed && IsLobbyDataValueChanged(IS_GAME_STARTED, "1", changes.Data.Value))
         {
-            Debug.Log("relay code " + joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value);
+            Debug.Log("Client game should start");
             OnGameStarted?.Invoke(this, joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value);
         }
     }
     #endregion
+
+    private bool IsLobbyDataValueChanged(string key, string expectedValue, Dictionary<string, ChangedOrRemovedLobbyValue<DataObject>> lobbyData)
+    {
+        return lobbyData.ContainsKey(key)
+            && lobbyData[key].ChangeType == LobbyValueChangeType.Changed
+            && lobbyData[key].Value.Value == expectedValue;
+    }
 }

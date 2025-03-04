@@ -185,7 +185,6 @@ public class LobbyManager : MonoBehaviour
         try
         {
             await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, playerId);
-            OnPlayerLeftLobby?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception e)
         {
@@ -234,9 +233,7 @@ public class LobbyManager : MonoBehaviour
 
     private void LobbyCallbacks_KickedFromLobby()
     {
-        OnLobbyPlayersChange?.Invoke(this, joinedLobby);
-
-        gameObject.SetActive(true);
+        OnPlayerLeftLobby?.Invoke(this, EventArgs.Empty);
     }
     #endregion
 
@@ -254,5 +251,4 @@ public class LobbyManager : MonoBehaviour
         callbacks.KickedFromLobby += LobbyCallbacks_KickedFromLobby;
         await LobbyService.Instance.SubscribeToLobbyEventsAsync(joinedLobby.Id, callbacks);
     }
-
 }

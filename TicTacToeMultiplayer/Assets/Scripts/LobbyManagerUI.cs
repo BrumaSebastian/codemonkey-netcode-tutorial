@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class LobbyManagerUI : MonoBehaviour
@@ -61,17 +60,17 @@ public class LobbyManagerUI : MonoBehaviour
 
     private void LobbyManager_OnJoinLobby(object sender, Lobby e)
     {
-        gameObject.SetActive(false);
+        HideUI();
     }
 
     private void LobbyManager_OnAuthenticated(object sender, EventArgs e)
     {
-        gameObject.SetActive(true);
+        ShowUI();
     }
 
     private void LobbyManager_OnLeaveLobby(object sender, EventArgs e)
     {
-        gameObject.SetActive(true);
+        ShowUI();
     }
 
     private void LobbyManager_OnLobbyRefresh(object sender, List<Lobby> lobbies)
@@ -104,5 +103,15 @@ public class LobbyManagerUI : MonoBehaviour
         }
 
         lobbies.Clear();
+    }
+
+    private void ShowUI()
+    {
+        gameObject.SetActive(true);
+    }
+
+    private void HideUI()
+    {
+        gameObject.SetActive(false);
     }
 }

@@ -22,7 +22,7 @@ public class RoomManagerUI : MonoBehaviour
             await LobbyManager.Instance.LeaveLobby();
         });
 
-        startGameButton.onClick.AddListener( () =>
+        startGameButton.onClick.AddListener(() =>
         {
             LobbyManager.Instance.StartGame();
         });
@@ -35,30 +35,62 @@ public class RoomManagerUI : MonoBehaviour
         LobbyManager.Instance.OnJoinLobby += LobbyManager_OnLobbyJoined;
         LobbyManager.Instance.OnLobbyPlayersChange += LobbyManager_OnLobbyPlayersChangeAsync;
         LobbyManager.Instance.OnGameStarted += LobbyManager_OnGameStarted;
+        LobbyManager.Instance.OnPlayerLeftLobby += LobbyManager_OnPlayerLeftLobby;
+        LobbyManager.Instance.OnHostStartGame += LobbyManager_OnHostStartGame;
+    }
+
+    private void LobbyManager_OnHostStartGame(object sender, Lobby e)
+    {
+        HideUI();
+    }
+
+    private void LobbyManager_OnPlayerLeftLobby(object sender, System.EventArgs e)
+    {
+        HideUI();
     }
 
     private void LobbyManager_OnGameStarted(object sender, string e)
     {
-        gameObject.SetActive(false);
+        HideUI();
     }
 
     private void LobbyManager_OnLobbyPlayersChangeAsync(object sender, Lobby lobby)
     {
-        ClearPlayersInLobby();
+        ClearPlayerObjects();
         RefreshPlayers(lobby);
-        //startGameButton.gameObject.SetActive(IsHost(lobby));
-        ChangeUIVisibility(lobby);
+        RefreshUI(lobby);
     }
 
     private void LobbyManager_OnLobbyJoined(object sender, Lobby lobby)
     {
         Debug.Log($"On joined host:{lobby.HostId}");
         lobbyName.text = lobby.Name;
-        ClearPlayersInLobby();
+        ClearPlayerObjects();
         RefreshPlayers(lobby);
-        //startGameButton.gameObject.SetActive(IsHost(lobby));
-        ChangeUIVisibility(lobby);
-        gameObject.SetActive(true);
+        RefreshUI(lobby);
+        ShowUI();
+    }
+
+    private void RefreshPlayers(Lobby lobby)
+    {
+        foreach (var player in lobby.Players)
+        {
+            SetupPlayer(player.Data[LobbyManager.PLAYER_NAME].Value, player.Id, lobby.HostId == player.Id);
+        }
+    }
+
+    private void RefreshUI(Lobby lobby)
+    {
+        startGameButton.gameObject.SetActive(IsHost(lobby));
+
+        if (IsHost(lobby))
+        {
+            foreach (var playerGameObject in playersGameObject)
+            {
+                var playerLobbyTemplate = playerGameObject.GetComponent<PlayerLobbyTemplateUI>();
+                playerLobbyTemplate.SetKickButtonVisibility(playerLobbyTemplate.PlayerId != lobby.HostId);
+            }
+        }
     }
 
     private void SetupPlayer(string playerName, string playerId, bool isHost = false)
@@ -69,16 +101,7 @@ public class RoomManagerUI : MonoBehaviour
         playersGameObject.Add(playerLobby);
     }
 
-    private void RefreshPlayers(Lobby lobby)
-    {
-        foreach (var player in lobby.Players)
-        {
-            bool isHost = lobby.HostId == player.Id;
-            SetupPlayer(player.Data[LobbyManager.PLAYER_NAME].Value, player.Id, isHost);
-        }
-    }
-
-    private void ClearPlayersInLobby()
+    private void ClearPlayerObjects()
     {
         foreach (var gameObject in playersGameObject)
         {
@@ -92,19 +115,14 @@ public class RoomManagerUI : MonoBehaviour
     {
         return AuthenticationService.Instance.PlayerId == lobby.HostId;
     }
-    
-    private void ChangeUIVisibility(Lobby lobby)
-    {
-        var isCurrentPlayerHost = IsHost(lobby);
-        startGameButton.gameObject.SetActive(isCurrentPlayerHost);
 
-        //if (isCurrentPlayerHost)
-        //{
-        //    foreach (var playerGameObject in playersGameObject)
-        //    {
-        //        var playerLobbyTemplate = playerGameObject.GetComponent<PlayerLobbyTemplateUI>();
-        //        playerLobbyTemplate.SetKickButtonVisible( );
-        //    }
-        //}
+    private void ShowUI()
+    {
+        gameObject.SetActive(true);
+    }
+
+    private void HideUI()
+    {
+        gameObject.SetActive(false);
     }
 }

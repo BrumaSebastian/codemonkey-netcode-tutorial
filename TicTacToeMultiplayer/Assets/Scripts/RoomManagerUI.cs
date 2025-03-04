@@ -20,13 +20,11 @@ public class RoomManagerUI : MonoBehaviour
         leaveButton.onClick.AddListener(async () =>
         {
             await LobbyManager.Instance.LeaveLobby();
-            gameObject.SetActive(false);
         });
 
         startGameButton.onClick.AddListener( () =>
         {
             LobbyManager.Instance.StartGame();
-            gameObject.SetActive(false);
         });
     }
 
@@ -48,7 +46,8 @@ public class RoomManagerUI : MonoBehaviour
     {
         ClearPlayersInLobby();
         RefreshPlayers(lobby);
-        startGameButton.gameObject.SetActive(IsHost(lobby));
+        //startGameButton.gameObject.SetActive(IsHost(lobby));
+        ChangeUIVisibility(lobby);
     }
 
     private void LobbyManager_OnLobbyJoined(object sender, Lobby lobby)
@@ -57,15 +56,16 @@ public class RoomManagerUI : MonoBehaviour
         lobbyName.text = lobby.Name;
         ClearPlayersInLobby();
         RefreshPlayers(lobby);
-        startGameButton.gameObject.SetActive(IsHost(lobby));
+        //startGameButton.gameObject.SetActive(IsHost(lobby));
+        ChangeUIVisibility(lobby);
         gameObject.SetActive(true);
     }
 
-    private void SetupPlayer(string playerName, bool isHost = false)
+    private void SetupPlayer(string playerName, string playerId, bool isHost = false)
     {
         var playerLobby = Instantiate(playerLobbyPrefab, playersContainer);
         var playerLobbyTemplate = playerLobby.GetComponent<PlayerLobbyTemplateUI>();
-        playerLobbyTemplate.SetData(playerName, isHost);
+        playerLobbyTemplate.SetData(playerName, playerId, isHost);
         playersGameObject.Add(playerLobby);
     }
 
@@ -74,7 +74,7 @@ public class RoomManagerUI : MonoBehaviour
         foreach (var player in lobby.Players)
         {
             bool isHost = lobby.HostId == player.Id;
-            SetupPlayer(player.Data[LobbyManager.PLAYER_NAME].Value, isHost);
+            SetupPlayer(player.Data[LobbyManager.PLAYER_NAME].Value, player.Id, isHost);
         }
     }
 
@@ -91,5 +91,20 @@ public class RoomManagerUI : MonoBehaviour
     private static bool IsHost(Lobby lobby)
     {
         return AuthenticationService.Instance.PlayerId == lobby.HostId;
+    }
+    
+    private void ChangeUIVisibility(Lobby lobby)
+    {
+        var isCurrentPlayerHost = IsHost(lobby);
+        startGameButton.gameObject.SetActive(isCurrentPlayerHost);
+
+        //if (isCurrentPlayerHost)
+        //{
+        //    foreach (var playerGameObject in playersGameObject)
+        //    {
+        //        var playerLobbyTemplate = playerGameObject.GetComponent<PlayerLobbyTemplateUI>();
+        //        playerLobbyTemplate.SetKickButtonVisible( );
+        //    }
+        //}
     }
 }

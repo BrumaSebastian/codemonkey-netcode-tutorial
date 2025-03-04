@@ -76,15 +76,8 @@ public class LobbyManager : MonoBehaviour
         };
 
         joinedLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, MAX_PLAYERS_IN_LOBBY, options);
-
-        LobbyEventCallbacks callbacks = new();
-        callbacks.LobbyChanged += LobbyCallbacks_LobbyChanged;
-        await LobbyService.Instance.SubscribeToLobbyEventsAsync(joinedLobby.Id, callbacks);
-
+        await SubscribeToLobbyCallbacks();
         StartCoroutine(HeartbeatLobby(joinedLobby.Id, 15));
-
-        Debug.Log($"Lobby created id:{joinedLobby.Id} - {joinedLobby.Created} - host - {joinedLobby.Players[0].Data[PLAYER_NAME].Value}");
-
         OnLobbyCreated?.Invoke(this, joinedLobby);
     }
 
@@ -105,11 +98,7 @@ public class LobbyManager : MonoBehaviour
             };
 
             joinedLobby = await LobbyService.Instance.QuickJoinLobbyAsync(options);
-
-            LobbyEventCallbacks callbacks = new();
-            callbacks.LobbyChanged += LobbyCallbacks_LobbyChanged;
-            await LobbyService.Instance.SubscribeToLobbyEventsAsync(joinedLobby.Id, callbacks);
-
+            await SubscribeToLobbyCallbacks();
             OnJoinLobby?.Invoke(this, joinedLobby);
         }
         catch (LobbyServiceException e)
@@ -135,13 +124,8 @@ public class LobbyManager : MonoBehaviour
             };
 
             joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId, options);
-
-            LobbyEventCallbacks callbacks = new();
-            callbacks.LobbyChanged += LobbyCallbacks_LobbyChanged;
-            await LobbyService.Instance.SubscribeToLobbyEventsAsync(joinedLobby.Id, callbacks);
-
+            await SubscribeToLobbyCallbacks();
             OnJoinLobby?.Invoke(this, joinedLobby);
-            Debug.Log($"{AuthenticationService.Instance.PlayerName} joined " + joinedLobby.Name);
         }
         catch (LobbyServiceException e)
         {
@@ -196,9 +180,17 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
-    public async Task<Lobby> GetLobbyData(string lobbyId)
+    public async Task KickPlayer(string playerId)
     {
-        return await LobbyService.Instance.GetLobbyAsync(lobbyId);
+        try
+        {
+            await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, playerId);
+            OnPlayerLeftLobby?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e);
+        }
     }
 
     private System.Collections.IEnumerator HeartbeatLobby(string lobbyId, float waitTimeSeconds)
@@ -239,6 +231,13 @@ public class LobbyManager : MonoBehaviour
             OnGameStarted?.Invoke(this, joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value);
         }
     }
+
+    private void LobbyCallbacks_KickedFromLobby()
+    {
+        OnLobbyPlayersChange?.Invoke(this, joinedLobby);
+
+        gameObject.SetActive(true);
+    }
     #endregion
 
     private bool IsLobbyDataValueChanged(string key, string expectedValue, Dictionary<string, ChangedOrRemovedLobbyValue<DataObject>> lobbyData)
@@ -247,4 +246,13 @@ public class LobbyManager : MonoBehaviour
             && lobbyData[key].ChangeType == LobbyValueChangeType.Changed
             && lobbyData[key].Value.Value == expectedValue;
     }
+
+    private async Task SubscribeToLobbyCallbacks()
+    {
+        LobbyEventCallbacks callbacks = new();
+        callbacks.LobbyChanged += LobbyCallbacks_LobbyChanged;
+        callbacks.KickedFromLobby += LobbyCallbacks_KickedFromLobby;
+        await LobbyService.Instance.SubscribeToLobbyEventsAsync(joinedLobby.Id, callbacks);
+    }
+
 }

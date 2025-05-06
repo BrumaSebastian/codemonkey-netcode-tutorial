@@ -1,0 +1,19 @@
+{
+  "navigationFallback": {
+    "rewrite": "index.html",
+    "exclude": ["/assets/*", "/build/*"]
+  },
+  "mimeTypes": {
+    ".data": "application/octet-stream",
+    ".wasm": "application/wasm",
+    ".unityweb": "application/octet-stream"
+  },
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/index.html"
+    }
+  },
+  "globalHeaders": {
+    "Cache-Control": "no-cache, no-store, must-revalidate"
+  }
+}

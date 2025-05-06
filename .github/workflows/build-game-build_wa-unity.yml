@@ -28,7 +28,7 @@ jobs:
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    
+      
     steps:
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
@@ -37,4 +37,4 @@ jobs:
           app-name: 'WA-Unity'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_F1BE2C69BD43443E97FFC84D87525959 }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
